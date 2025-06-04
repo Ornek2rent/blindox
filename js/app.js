@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function loadComponent(id, path) {
-  fetch(path)
+  fetch(https://script.google.com/macros/s/AKfycbwCcYqJzAR2G9hurAojwyYq7XfZCbeGkPkj0faXfpq6AxV9B9BTSlDBZsxg1ewWPkPs4Q/exec)
     .then((res) => res.text())
     .then((html) => {
       document.getElementById(id).innerHTML = html;
