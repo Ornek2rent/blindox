@@ -1,66 +1,44 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Header ve Footer bileşenlerini yükle
-  loadComponent("components/header.html", "header");
-  loadComponent("components/footer.html", "footer");
-
-  // Ana sayfadaki "Araçları Gör" butonuna tıklayınca search-results sayfasını yükle
-  const goSearchBtn = document.getElementById("go-search");
-  goSearchBtn?.addEventListener("click", () => {
-    loadPage("search-results.html");
-  });
-
-  // History API ve SPA sayfa yükleme için
-  window.addEventListener("popstate", e => {
-    if (e.state?.page) {
-      loadPage(e.state.page, false);
-    }
-  });
+  loadComponent("header", "components/header.html");
+  loadComponent("footer", "components/footer.html");
+  router();
+  window.addEventListener("hashchange", router);
 });
 
-function loadComponent(url, elementId) {
-  fetch(url)
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById(elementId).innerHTML = html;
-    })
-    .catch(() => {
-      document.getElementById(elementId).innerHTML = "";
+function loadComponent(id, path) {
+  fetch(path)
+    .then((res) => res.text())
+    .then((html) => {
+      document.getElementById(id).innerHTML = html;
     });
 }
 
-function loadPage(page, pushState = true) {
-  fetch(`pages/${page}`)
-    .then(res => {
-      if (!res.ok) throw new Error("Sayfa yüklenemedi");
-      return res.text();
-    })
-    .then(html => {
-      const app = document.getElementById("app");
-      app.innerHTML = html;
-
-      if (pushState) {
-        history.pushState({ page }, "", `#${page.replace(".html", "")}`);
-      }
-
-      // Sayfa yüklendikten sonra sayfaya özel script varsa çağır
-      runPageScript(page);
-    })
-    .catch(err => {
-      document.getElementById("app").innerHTML = `<p>Sayfa yüklenirken hata oluştu.</p>`;
-      console.error(err);
+function router() {
+  const hash = location.hash || "#search";
+  const page = hash.substring(1);
+  fetch(`pages/${page}.html`)
+    .then((res) => res.text())
+    .then((html) => {
+      document.getElementById("app").innerHTML = html;
+      if (page === "search-results") loadVehicles();
     });
 }
 
-function runPageScript(page) {
-  switch (page) {
-    case "search-results.html":
-      if (typeof searchResultsPage === "function") searchResultsPage();
-      break;
-    case "vehicle-details.html":
-      if (typeof vehicleDetailsPage === "function") vehicleDetailsPage();
-      break;
-    case "booking.html":
-      if (typeof bookingPage === "function") bookingPage();
-      break;
-  }
+function loadVehicles() {
+  fetch("https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec?page=vehicles")
+    .then((res) => res.json())
+    .then((vehicles) => {
+      const container = document.getElementById("vehicle-list");
+      container.innerHTML = "";
+      vehicles.forEach((v) => {
+        const card = document.createElement("div");
+        card.className = "car-card";
+        card.innerHTML = `
+          <img src="${v.Image}" alt="${v.Name}" />
+          <h3>${v.Name}</h3>
+          <p>${v.Brand} - ${v.Price} TL</p>
+        `;
+        container.appendChild(card);
+      });
+    });
 }
