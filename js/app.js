@@ -1,41 +1,66 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Örnek araç listesi (ilerde backend’den çekilecek)
-  const vehicles = [
-    { id: 1, brand: "Renault", model: "Clio", price: 850, img: "img/renault-clio.jpg" },
-    { id: 2, brand: "Fiat", model: "Egea", price: 900, img: "img/fiat-egea.jpg" },
-  ];
+  // Header ve Footer bileşenlerini yükle
+  loadComponent("components/header.html", "header");
+  loadComponent("components/footer.html", "footer");
 
-  const listEl = document.getElementById("vehicle-list");
-  vehicles.forEach((v) => {
-    const card = document.createElement("div");
-    card.className = "vehicle-card";
-    card.dataset.id = v.id;
-    card.dataset.brand = v.brand;
-    card.dataset.model = v.model;
-    card.dataset.price = v.price;
-
-    card.innerHTML = `
-      <img src="${v.img}" alt="${v.brand} ${v.model}" />
-      <h3>${v.brand} ${v.model}</h3>
-      <p>Günlük Fiyat: ${v.price}₺</p>
-      <button class="select-car-btn">Seç</button>
-    `;
-
-    listEl.appendChild(card);
+  // Ana sayfadaki "Araçları Gör" butonuna tıklayınca search-results sayfasını yükle
+  const goSearchBtn = document.getElementById("go-search");
+  goSearchBtn?.addEventListener("click", () => {
+    loadPage("search-results.html");
   });
 
-  document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("select-car-btn")) {
-      const card = e.target.closest(".vehicle-card");
-      const selectedCar = {
-        id: card.dataset.id,
-        brand: card.dataset.brand,
-        model: card.dataset.model,
-        price: card.dataset.price,
-      };
-      localStorage.setItem("selectedCar", JSON.stringify(selectedCar));
-      window.location.href = "details.html";
+  // History API ve SPA sayfa yükleme için
+  window.addEventListener("popstate", e => {
+    if (e.state?.page) {
+      loadPage(e.state.page, false);
     }
   });
 });
 
+function loadComponent(url, elementId) {
+  fetch(url)
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById(elementId).innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById(elementId).innerHTML = "";
+    });
+}
+
+function loadPage(page, pushState = true) {
+  fetch(`pages/${page}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Sayfa yüklenemedi");
+      return res.text();
+    })
+    .then(html => {
+      const app = document.getElementById("app");
+      app.innerHTML = html;
+
+      if (pushState) {
+        history.pushState({ page }, "", `#${page.replace(".html", "")}`);
+      }
+
+      // Sayfa yüklendikten sonra sayfaya özel script varsa çağır
+      runPageScript(page);
+    })
+    .catch(err => {
+      document.getElementById("app").innerHTML = `<p>Sayfa yüklenirken hata oluştu.</p>`;
+      console.error(err);
+    });
+}
+
+function runPageScript(page) {
+  switch (page) {
+    case "search-results.html":
+      if (typeof searchResultsPage === "function") searchResultsPage();
+      break;
+    case "vehicle-details.html":
+      if (typeof vehicleDetailsPage === "function") vehicleDetailsPage();
+      break;
+    case "booking.html":
+      if (typeof bookingPage === "function") bookingPage();
+      break;
+  }
+}
